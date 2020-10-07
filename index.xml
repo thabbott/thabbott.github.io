@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Home on Tristan Abbott</title>
+    <link>http://thabbott.github.io/</link>
+    <description>Recent content in Home on Tristan Abbott</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language><atom:link href="http://thabbott.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Publications</title>
+      <link>http://thabbott.github.io/publications/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>http://thabbott.github.io/publications/</guid>
+      <description>Publications (CV) Abbott, T.H. and T.W. Cronin (under review), Aerosol invigoration of convection through increases in humidity. [arxiv]
+Abbott, T.H., T.W. Cronin and T. Beucler (2020), Convective Dynamics and the Response of Precipitation Extremes to Warming in Radiative–Convective Equilibrium, Journal of the Atmospheric Sciences. [arxiv][journal]
+Hausfather, Z., H.F. Drake, T.H. Abbott and G.A. Schmidt (2020), Evaluating the performance of past climate model projections, Geophysical Research Letters. [journal]
+Beucler, T., T.H. Abbott, T.</description>
+    </item>
+    
+    <item>
+      <title>Research</title>
+      <link>http://thabbott.github.io/research/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>http://thabbott.github.io/research/</guid>
+      <description>Research </description>
+    </item>
+    
+  </channel>
+</rss>
