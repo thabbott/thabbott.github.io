@@ -1,0 +1,10 @@
+body {
+  font-family: Arial, sans-serif;
+}
+.captioned-video {
+  font-size: 85%;
+}
+code {
+  font-family: "Lucida Console", Monaco, monospace;
+  font-size: 85%;
+}
