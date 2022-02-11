@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Coriolis forces on a turntable</title>
+<style>
+
+p {
+  width: 960px;
+}
+
+.curve, .line {
+  fill: none;
+  stroke-width: 1px;
+}
+.curve {
+  stroke: red;
+  stroke-width: 3px;
+}
+.control {
+  fill: #ccc;
+  stroke: #000;
+  stroke-width: .5px;
+	cursor: move;
+}
+.control.drag, .control:hover {
+	fill: #fe0;
+}
+.t, .controltext {
+  font-size: .6em;
+}
+svg {
+  display: inline-block;
+}
+</style>
+
+<div class="container">
+<h1>Coriolis forces on a turntable</h1>
+<div class="row"><div class="col-sm-12">
+  This webpage simulates the motion of a particle under the influence of the Coriolis force on a rotating turntable. The radius of the turntable is 10 cm. Vectors show the initial particle velocity (in cm/s) and Coriolis force (in cm/s/s). Red dots show the trajectory of the particle in the rotating frame of the turntable, plotted at 0.1 second intervals and stopping after 1 second or after the particle leaves the table. You can click and drag the gray circles to modify the initial position and velocity of the particle, and change the turntable rotation rate using the slider. Positive rotation rates correspond to counterclockwise rotation; negative rotation rates correspond to clockwise rotation.
+  <p><p>
+  Note: this simulation only include the effects of the Coriolis force, and ignores centrifugal forces. You can isolate the effects of the Coriolis force in a similar way in a laboratory by releasing particles on a turntable with a parabolic surface, shaped so that the outward centrifugal force is exactly canceled by the component of gravity acting parallel to the surface.
+</div></div>
+<p>
+<div class="row align-items-center">
+    <div class="col-sm-3"></div>
+    <div class="col-sm-3"><p id="value-simple"></p></div>
+    <div class="col-sm-3"><div id="slider-simple"></div>
+    <div class="col-sm-3"></p></div>
+</div>
+<div class="row align-items-center">
+  <div class="col-sm-12">
+    <div id="vis" style="text-align:center;"></div>
+  </div>
+</div>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/d3-simple-slider"></script>
+<link
+  rel="stylesheet"
+  href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+  integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+  crossorigin="anonymous"
+/>
+<script>
+
+const markerBoxWidth = 6;
+const markerBoxHeight = 6;
+const refX = markerBoxWidth;
+const refY = markerBoxHeight/2;
+const markerWidth = markerBoxWidth / 2;
+const markerHeight = markerBoxHeight / 2;
+const arrowPoints = [[0, 0], [0, markerBoxHeight], [markerBoxHeight, markerBoxWidth/2]];
+
+var w = 840,
+    h = 840,
+    cx = 420,
+    cy = 420,
+    r = 400;
+
+var pi = 3.141592654,
+    Omega = 1.0,
+    Omega_ref = 1.0,
+    rtable = 0.1;
+
+var vscale = 0.1/r;
+
+var dcontrols = [
+  {cx: 0, cy: 0},
+  {cx: 100, cy: 100}
+];
+var dvecs = [
+  {x1: dcontrols[0].cx, y1: dcontrols[0].cy,
+   x2: dcontrols[1].cx, y2: dcontrols[1].cy},
+  {x1: dcontrols[0].cx, y1: dcontrols[0].cy,
+   x2: Math.round(dcontrols[0].cx + Omega/Omega_ref*(dcontrols[0].cy - dcontrols[1].cy)), 
+   y2: Math.round(dcontrols[0].cy + Omega/Omega_ref*(dcontrols[1].cx - dcontrols[0].cx))} 
+];
+var vx = vscale*(dcontrols[1].cx - dcontrols[0].cx),
+    vy = -vscale*(dcontrols[1].cy - dcontrols[0].cy),
+    v = Math.sqrt(vx*vx + vy*vy);
+var dtext = [
+  {label: (100*v).toFixed(2) + " cm/s", 
+   x: dcontrols[1].cx, y: dcontrols[1].cy},
+  {label: Math.abs(2*Omega*100*v).toFixed(2) + " cm/s/s",
+   x: dvecs[1].x2, y: dvecs[1].y2}
+];
+var xy = calculate_trajectory();
+
+var slider = d3.sliderBottom()
+    .min(-Omega_ref)
+    .max(Omega_ref)
+    .width(300)
+    .tickFormat(d3.format('.2'))
+    .ticks(5)
+    .default(Omega_ref)
+    .on('onchange', val => {
+      Omega = val;
+      d3.select('p#value-simple').text("Current rotation rate: " + val.toFixed(2) + " rad/s");
+      update();
+    });
+
+var gSimple = d3
+  .select('div#slider-simple')
+  .append('svg')
+  .attr('width', 500)
+  .attr('height', 100)
+  .append('g')
+  .attr('transform', 'translate(30,30)');
+
+gSimple.call(slider);
+
+d3.select('p#value-simple').text("Current rotation rate: " + slider.value().toFixed(2) + " rad/s");
+
+var vis = d3.select("#vis").append("svg")
+  .attr("width", w)
+  .attr("height", h);
+
+vis.append('defs')
+  .append('marker')
+  .attr('id', 'arrow')
+  .attr('viewBox', [0, 0, markerBoxWidth, markerBoxHeight])
+  .attr('refX', refX)
+  .attr('refY', refY)
+  .attr('markerWidth', markerBoxWidth)
+  .attr('markerHeight', markerBoxHeight)
+  .attr('orient', 'auto-start-reverse')
+  .append('path')
+  .attr('d', d3.line()(arrowPoints))
+  .attr('stroke', 'black');
+
+vis.append("circle")
+  .style("stroke", "black")
+  .style("fill", "white")
+  .attr("r", r)
+  .attr("cx", cx)
+  .attr("cy", cy);
+
+var controls = vis.selectAll("circle.controls")
+  .data(dcontrols).enter()
+  .append("circle")
+  .attr("class", "controls")
+  .attr("cx", function(d) { return cx + d.cx; })
+  .attr("cy", function(d) { return cy + d.cy; })
+  .attr("r", 8)
+  .attr("fill", "gray")
+  .call(d3.drag()
+      .on("start", function(event, d) {
+        d3.select(this).attr("stroke", "black");
+      })
+      .on("drag", function(event, d) {
+        d.cx = event.x - cx;
+        d.cy = event.y - cy;
+        d3.select(this)
+          .attr("cx", cx + d.cx)
+          .attr("cy", cy + d.cy);
+        update();
+      })
+      .on("end", function(event, d) {
+        delete this.__origin__;
+        d3.select(this).attr("stroke", null);
+      }));
+
+var traj = vis.selectAll("circle.traj")
+  .data(xy).enter()
+  .append("circle")
+  .attr("class", "traj")
+  .attr("cx", function(d) { return cx + Math.round(d.x*r/rtable); })
+  .attr("cy", function(d) { return cy - Math.round(d.y*r/rtable); })
+  .attr("r", 8)
+  .attr("fill", "red");
+
+var text = vis.selectAll("text.controls")
+  .data(dtext).enter()
+  .append("text")
+  .attr("class", "controls")
+  .attr("x", function(d) { return cx + d.x + 10; })
+  .attr("y", function(d) { return cy + d.y + 5; })
+  .text(function(d) { return d.label; })
+
+var vel = vis.selectAll("line")
+  .data(dvecs).enter()
+  .append("line")
+  .attr("x1", function(d) { return cx + d.x1; })
+  .attr("y1", function(d) { return cy + d.y1; })
+  .attr("x2", function(d) { return cx + d.x2; })
+  .attr("y2", function(d) { return cy + d.y2; })
+  .attr("stroke", "black")
+  .attr("stroke-width", 2)
+  .attr("marker-end", "url(#arrow)");
+
+function update() {
+
+  // Calculate updated data
+  var dvecs = [
+    {x1: dcontrols[0].cx, y1: dcontrols[0].cy,
+     x2: dcontrols[1].cx, y2: dcontrols[1].cy},
+    {x1: dcontrols[0].cx, y1: dcontrols[0].cy,
+     x2: Math.round(dcontrols[0].cx + Omega/Omega_ref*(dcontrols[0].cy - dcontrols[1].cy)), 
+     y2: Math.round(dcontrols[0].cy + Omega/Omega_ref*(dcontrols[1].cx - dcontrols[0].cx))} 
+  ];
+  var vx = vscale*(dcontrols[1].cx - dcontrols[0].cx),
+    vy = -vscale*(dcontrols[1].cy - dcontrols[0].cy),
+    v = Math.sqrt(vx*vx + vy*vy);
+  var dtext = [
+    {label: (100*v).toFixed(2) + " cm/s", 
+     x: dcontrols[1].cx, y: dcontrols[1].cy},
+    {label: Math.abs(2*Omega*100*v).toFixed(2) + " cm/s/s",
+     x: dvecs[1].x2, y: dvecs[1].y2}
+  ];
+  var xy = calculate_trajectory();
+  
+
+  // Update SVG elements
+  var vel = vis.selectAll("line")
+    .data(dvecs);
+  vel.attr("x1", function(d) { return cx + d.x1; })
+    .attr("y1", function(d) { return cy + d.y1; })
+    .attr("x2", function(d) { return cx + d.x2; })
+    .attr("y2", function(d) { return cy + d.y2; });
+  var text = vis.selectAll("text.controls")
+    .data(dtext);
+  text.attr("x", function(d) { return cx + d.x + 10; })
+    .attr("y", function(d) { return cy + d.y + 5; })
+    .text(function(d) { return d.label; })
+  var traj = vis.selectAll("circle.traj")
+    .data(xy)
+
+  traj.exit().remove()
+  traj.enter()
+    .append("circle")
+    .attr("class", "traj")
+    .attr("cx", function(d) { return cx + Math.round(d.x*r/rtable); })
+    .attr("cy", function(d) { return cy - Math.round(d.y*r/rtable); })
+    .attr("r", 8)
+    .attr("fill", "red");
+  traj.attr("cx", function(d) { return cx + Math.round(d.x*r/rtable); })
+    .attr("cy", function(d) { return cy - Math.round(d.y*r/rtable); })
+    .attr("r", 8)
+    .attr("fill", "red");
+
+}
+
+function calculate_trajectory() {
+
+  var x0 = dcontrols[0].cx*rtable/r;
+  var y0 = -dcontrols[0].cy*rtable/r;
+  var vx0 = vscale*(dcontrols[1].cx - dcontrols[0].cx);
+  var vy0 = -vscale*(dcontrols[1].cy - dcontrols[0].cy);
+  var xy = [];
+  for (var t = 1; t <= 10; t++) {
+    xc = x0 + vy0/(2*Omega) - vy0/(2*Omega)*Math.cos(2*Omega*t/10) + vx0/(2*Omega)*Math.sin(2*Omega*t/10);
+    yc = y0 - vx0/(2*Omega) + vx0/(2*Omega)*Math.cos(2*Omega*t/10) + vy0/(2*Omega)*Math.sin(2*Omega*t/10);
+    if (Math.sqrt(xc*xc + yc*yc) > rtable) {
+      break;
+    }
+    xy.push({x: xc, y: yc});
+  }
+  return xy;
+}
+
+</script>
