@@ -22,7 +22,7 @@ p {
 
 /* header and footer areas */
 .menu { padding: 0; }
-.menu li { display: inline-block; }
+.menu li { display: inline-block; font-size: 1.15em }
 .menu { text-align: left }
 .menu li:first-child a { 
   padding-left: 0;
